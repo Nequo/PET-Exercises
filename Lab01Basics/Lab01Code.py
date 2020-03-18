@@ -14,13 +14,13 @@
 
 #####################################################
 # TASK 1 -- Ensure petlib is installed on the System
-#           and also pytest. Ensure the Lab Code can 
+#           and also pytest. Ensure the Lab Code can
 #           be imported.
 
 import petlib
 
 #####################################################
-# TASK 2 -- Symmetric encryption using AES-GCM 
+# TASK 2 -- Symmetric encryption using AES-GCM
 #           (Galois Counter Mode)
 #
 # Implement a encryption and decryption function
@@ -42,7 +42,7 @@ def encrypt_message(K, message):
     return (iv, ciphertext, tag)
 
 def decrypt_message(K, iv, ciphertext, tag):
-    """ Decrypt a cipher text under a key K 
+    """ Decrypt a cipher text under a key K
         In case the decryption fails, throw an exception.
     """
     ## YOUR CODE HERE
@@ -64,7 +64,6 @@ def decrypt_message(K, iv, ciphertext, tag):
 #           - Implement Scalar multiplication (Montgomery ladder).
 #
 # MUST NOT USE ANY OF THE petlib.ec FUNCIONS. Only petlib.bn!
-
 from petlib.bn import Bn
 
 
@@ -140,7 +139,7 @@ def point_double(a, b, p, x, y):
         yr  = lam * (xp - xr) - yp (mod p)
 
     Returns the point representing the double of the input (x, y).
-    """  
+    """ 
     if x is None and y is None:
         return (None, None)
     # ADD YOUR CODE BELOW

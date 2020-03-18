@@ -28,20 +28,23 @@ def setup():
     return (G, g, h, o)
 
 def keyGen(params):
-   """ Generate a private / public key pair """
-   (G, g, h, o) = params
-   
-   # ADD CODE HERE
+    """ Generate a private / public key pair """
+    (G, g, h, o) = params
 
-   return (priv, pub)
+    # ADD CODE HERE
+    priv = G.order().random()
+    pub = priv * g
+    return (priv, pub)
 
 def encrypt(params, pub, m):
     """ Encrypt a message under the public key """
     if not -100 < m < 100:
         raise Exception("Message value to low or high.")
-
-   # ADD CODE HERE
-
+    
+    # ADD CODE HERE
+    (G, g, h, o) = params
+    k = G.order().random()
+    c = (k * g, k * pub + m * h)
     return c
 
 def isCiphertext(params, ciphertext):
@@ -75,8 +78,8 @@ def decrypt(params, priv, ciphertext):
     assert isCiphertext(params, ciphertext)
     a , b = ciphertext
 
-   # ADD CODE HERE
-
+    # ADD CODE HERE
+    hm = b + (priv * a).pt_mul(-1)
     return logh(params, hm)
 
 #####################################################
@@ -91,7 +94,10 @@ def add(params, pub, c1, c2):
     assert isCiphertext(params, c1)
     assert isCiphertext(params, c2)
 
-   # ADD CODE HERE
+    # ADD CODE HERE
+    a0, b0 = c1
+    a1, b1 = c2
+    c3 = (a0+a1, b0+b1)
 
     return c3
 
@@ -100,8 +106,9 @@ def mul(params, pub, c1, alpha):
         product of the plaintext time alpha """
     assert isCiphertext(params, c1)
 
-   # ADD CODE HERE
-
+    # ADD CODE HERE
+    a0, b0 = c1
+    c3 = (alpha * a0, alpha * b0)
     return c3
 
 #####################################################
@@ -113,16 +120,19 @@ def groupKey(params, pubKeys=[]):
     """ Generate a group public key from a list of public keys """
     (G, g, h, o) = params
 
-   # ADD CODE HERE
-
+    pub = G.sum(pubKeys)
+    # ADD CODE HERE
     return pub
 
 def partialDecrypt(params, priv, ciphertext, final=False):
     """ Given a ciphertext and a private key, perform partial decryption. 
         If final is True, then return the plaintext. """
     assert isCiphertext(params, ciphertext)
-    
+
     # ADD CODE HERE
+    a0, b0 = ciphertext
+    a1 = a0
+    b1 = b0 + (priv * a0).pt_mul(-1)
 
     if final:
         return logh(params, b1)
@@ -141,8 +151,11 @@ def corruptPubKey(params, priv, OtherPubKeys=[]):
         public key corresponding to a private key known to the
         corrupt authority. """
     (G, g, h, o) = params
-    
-   # ADD CODE HERE
+
+    # ADD CODE HERE
+    pub = priv * g
+    # Cancel out all other key operations
+    pub = pub - G.sum(OtherPubKeys)
 
     return pub
 
@@ -157,7 +170,9 @@ def encode_vote(params, pub, vote):
         zero and the votes for one."""
     assert vote in [0, 1]
 
-   # ADD CODE HERE
+    # ADD CODE HERE
+    v0 = encrypt(params, pub, 1-vote)
+    v1 = encrypt(params, pub, vote)
 
     return (v0, v1)
 
@@ -165,8 +180,12 @@ def process_votes(params, pub, encrypted_votes):
     """ Given a list of encrypted votes tally them
         to sum votes for zeros and votes for ones. """
     assert isinstance(encrypted_votes, list)
-    
-   # ADD CODE HERE
+
+    # ADD CODE HERE
+    tv0, tv1 = encrypted_votes[0]
+    for v0, v1 in encrypted_votes[1:]:
+        tv0 = add(params, pub, tv0, v0)
+        tv1 = add(params, pub, tv1, v1)
 
     return tv0, tv1
 

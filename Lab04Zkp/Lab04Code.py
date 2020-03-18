@@ -52,6 +52,15 @@ def proveKey(params, priv, pub):
     (G, g, hs, o) = params
     
     ## YOUR CODE HERE:
+    w = o.random()
+    # Witness
+    W = w * g
+
+    # challenge
+    c = to_challenge([g, W])
+
+    # response
+    r = (w - c * priv) % o
     
     return (c, r)
 
@@ -80,6 +89,7 @@ def commit(params, secrets):
     C = x0 * h0 + x1 * h1 + x2 * h2 + x3 * h3 + r * g
     return (C, r)
 
+# Slide 26
 def proveCommitment(params, C, r, secrets):
     """ Prove knowledge of the secrets within a commitment, 
         as well as the opening of the commitment.
@@ -92,6 +102,22 @@ def proveCommitment(params, C, r, secrets):
     x0, x1, x2, x3 = secrets
 
     ## YOUR CODE HERE:
+    # Generate 4 random values in the order of the group
+    w = [o.random() for i in range(5)]
+
+    # Calculate the witness with each part of the params that was used during the commitment
+    W = w[0] * g + w[1] * h0 + w[2] * h1 + w[3] * h2 + w[4] * h3
+
+    # Generate challenge from the witness
+    # If I understood correctly from the slides we should also have to hash commitment but not done in verify
+    c = to_challenge([g, h0, h1, h2, h3, W]) 
+    
+    # Create responses for each secret and the opening
+    responses = [(w[1] - c * x0) % o,
+                 (w[2] - c * x1) % o,
+                 (w[3] - c * x2) % o,
+                 (w[4] - c * x3) % o,
+                 (w[0] - c * r) % o]
 
     return (c, responses)
 
@@ -120,15 +146,17 @@ def gen2Keys(params):
 
     return (x, K, L)    
 
+# Slide 23 formulas
 def proveDLEquality(params, x, K, L):
     """ Generate a ZK proof that two public keys K, L have the same secret private key x, 
         as well as knowledge of this private key. """
     (G, g, (h0, h1, h2, h3), o) = params
+    # We compose 2 schnor with the same witness and response
     w = o.random()
     Kw = w * g
     Lw = w * h0
 
-    c = to_challenge([g, h0, Kw, Lw])
+    c = to_challenge([g, h0, K, L, Kw, Lw])
 
     r = (w - c * x) % o
     return (c, r)
@@ -139,8 +167,10 @@ def verifyDLEquality(params, K, L, proof):
     c, r = proof
 
     ## YOUR CODE HERE:
+    k_prime = c*K + r*g
+    l_prime = c*L + r*h0
 
-    return # YOUR RETURN HERE
+    return to_challenge([g, h0, K, L, k_prime, l_prime]) == c
 
 #####################################################
 # TASK 4 -- Prove correct encryption and knowledge of 
@@ -154,6 +184,7 @@ def encrypt(params, pub, m):
     k = o.random()
     return k, (k * g, k * pub + m * h0)
 
+
 def proveEnc(params, pub, Ciphertext, k, m):
     """ Prove in ZK that the ciphertext is well formed 
         and knowledge of the message encrypted as well.
@@ -164,6 +195,21 @@ def proveEnc(params, pub, Ciphertext, k, m):
     a, b = Ciphertext
 
     ## YOUR CODE HERE:
+    wa = o.random()
+    wb = o.random()
+
+    # Generate witnesses
+    Wa = wa * g
+    # Witness for the public key and one hash
+    Wb = wa * pub + wb * h0
+
+    # Generate challenge for everything
+    c = to_challenge([g, h0, Wa, Wb, pub, a, b])
+
+    # Response for the key
+    rk = (wa - c * k) % o
+    # Response for the message
+    rm = (wb - c * m) % o
 
     return (c, (rk, rm))
 
@@ -174,8 +220,11 @@ def verifyEnc(params, pub, Ciphertext, proof):
     (c, (rk, rm)) = proof
 
     ## YOUR CODE HERE:
+    ka = c * a + rk * g
+    # use the same parameters pub, h0 as when we generated the witness above
+    kb = c * b + rk * pub + rm * h0
 
-    return ## YOUR RETURN HERE
+    return to_challenge([g, h0, ka, kb, pub, a, b]) == c
 
 
 #####################################################
@@ -199,16 +248,30 @@ def prove_x0eq10x1plus20(params, C, x0, x1, r):
     (G, g, (h0, h1, h2, h3), o) = params
 
     ## YOUR CODE HERE:
+    w1 = o.random()
+    w2 = o.random()
 
-    return ## YOUR RETURN HERE
+    # substitute the linear relationship for x0
+    # g^x0 = g ^ (10x1 + 20)
+    # The 20 will be used later in the subtraction since we pass it to the other side of the equation
+    W = w1 * g + w2 * h1 + 10 * w2 * h0
+
+    c = to_challenge([g, h0, h1, W])
+
+    r1 = (w1 - c * r) % o
+    r2 = (w2 - c * x1) % o
+
+    return c, (r1, r2)
 
 def verify_x0eq10x1plus20(params, C, proof):
     """ Verify that proof of knowledge of C and x0 = 10 x1 + 20. """
     (G, g, (h0, h1, h2, h3), o) = params
 
     ## YOUR CODE HERE:
+    c, (r1, r2) = proof
 
-    return ## YOUR RETURN HERE
+    w_prime = r1 * g + r2 * h1 + (10 * r2 * h0) + c * (C - (20 * h0))     
+    return to_challenge([g, h0, h1, w_prime]) == c
 
 #####################################################
 # TASK 6 -- (OPTIONAL) Prove that a ciphertext is either 0 or 1
